@@ -1,17 +1,17 @@
 import soundfile as sf
 import speech_recognition as speech_recog
-import io
 
 
 class Recognizer:
     @staticmethod
-    def recognize_text(file_bin: io.BytesIO):
+    def recognize_text(file_path: str):
         """Распознаёт текст из аудиосообщения"""
+        name = file_path.split('/')[-1].split('.')[0]
         # Конвертация .ogg файла в .wav
-        temp_data, samplerate = sf.read(file_bin)
-        sf.write('temp_file.wav', temp_data, samplerate)
+        temp_data, samplerate = sf.read(file_path)
+        sf.write(f'media/{name}.wav', temp_data, samplerate)
 
-        sample_audio = speech_recog.AudioFile('temp_file.wav')
+        sample_audio = speech_recog.AudioFile(f'media/{name}.wav')
 
         recog = speech_recog.Recognizer()
 
