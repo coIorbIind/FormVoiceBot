@@ -5,7 +5,9 @@ from aiogram.utils import executor
 from aiogram.utils.exceptions import ValidationError
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from handlers.commands import register_command_handlers
+from handlers.commands import CommandsHandler
+from db.database import SessionLocal, engine
+from db import models
 
 
 async def on_startup(_):
@@ -23,20 +25,26 @@ if __name__ == "__main__":
     Регистрация обработчиков пользователесного ввода.
     Запуск long polling'а
     """
+    config_path = 'config.ini'
     # Создание объекта для чтения настроек
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read(config_path)
     # Создание хранилища данных
     storage = MemoryStorage()
     # Создание бота
     try:
+        # Подключение к БД
+        models.Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+
         bot_token = config['BOT SETTINGS']['BotToken']
 
         bot = Bot(token=bot_token)
         dp = Dispatcher(bot, storage=storage)
 
         # Регистрания handlers
-        register_command_handlers(dp)
+        command_handler = CommandsHandler(db)
+        command_handler(dp)
 
         # Запуск поллинга
         executor.start_polling(dp, on_startup=on_startup)
