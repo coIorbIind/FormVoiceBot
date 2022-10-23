@@ -10,9 +10,9 @@ class Recognizer:
         name = file_path.split('/')[-1].split('.')[0]
         # Конвертация .ogg файла в .wav
         temp_data, samplerate = sf.read(file_path)
-        sf.write(f'../media/{name}.wav', temp_data, samplerate)
+        sf.write(f'media/{name}.wav', temp_data, samplerate)
 
-        sample_audio = speech_recog.AudioFile(f'../media/{name}.wav')
+        sample_audio = speech_recog.AudioFile(f'media/{name}.wav')
 
         recog = speech_recog.Recognizer()
 
@@ -45,14 +45,14 @@ class TextParser:
                 self.all_commands[item] = [self.stemmer.stem(token) for token in com_stop_word_dict[item]]
 
     def parse_command(self, raw_text: str) -> tuple:
-        """Находит команду в тексте"""
+        """ Находит команду в тексте """
         tokens = raw_text.split(' ')
 
         cmd_value = list(filter(lambda x: self.stemmer.stem(x.lower()) == self.stemmer.stem(tokens[0].lower()),
                                 self.all_commands.keys()))
 
         if not cmd_value:
-            raise ValueError("Command isn't found in the raw text!")
+            raise ValueError('Command isn\'t found in the raw text!')
 
         # К списку уже применён стемминг
         cmd_stop_list = self.all_commands[cmd_value[0]]
@@ -65,32 +65,23 @@ class TextParser:
         return cmd_value[0], ' '.join(tokens[temp_word_ind:])
 
     def parse_table_name(self, table_names: list, prep_text: str) -> str:
-        """
-        Находит название таблицы и отделяет его от остального текста
-        """
+        """ Находит название таблицы и отделяет его от остального текста """
         tokens = prep_text.split(' ')
 
         result_table_name = None
 
-        token_ind = 0
         # Ищем слова, близкие к началу предложения, которые похожи на имена форм
         for token in tokens[-3:]:
-        #     for item in table_names:
-        #         stem_item = self.stemmer.stem(item.lower())
-        #         stem_token -
-        #         result_table_name = stem_item if stem_item == self.stemmer.stem(token.lower()) else None
             result_table_name = list(filter(lambda x: self.stemmer.stem(x.lower()) == self.stemmer.stem(token.lower()),
                                             table_names))
 
         if not result_table_name:
-            raise ValueError("No such table!")
+            raise ValueError('No such table!')
 
         return result_table_name[0]
 
     def parse_fields(self, possible_fields: list, prep_text: str):
-        """
-        Находит название поля, которое есть в этой строке
-        """
+        """ Находит название поля, которое есть в этой строке """
         tokens = prep_text.split(' ')
 
         # Отбираем слова, которые похожи на названия полей

@@ -14,9 +14,7 @@ from db.crud import create_staff_user
 
 
 class StaffForm(StatesGroup):
-    """
-    Форма создания нового объекта сотрудника
-    """
+    """ Форма создания нового объекта сотрудника """
     surname = State()
     name = State()
     patronymic = State()
@@ -52,6 +50,7 @@ class ModelFactory:
 
 class VoicesHandler(BaseHandler):
     async def get_result_text(self, file_on_disk: str) -> str:
+        """ Получение текста для отправки пользователю ответа """
         try:
             text = Recognizer.recognize_text(file_on_disk)
             return text
@@ -61,22 +60,37 @@ class VoicesHandler(BaseHandler):
             return 'Текст не распознан'
 
     async def voice_message_handler(self, message: types.Message) -> None:
+        """ Обработка команды """
         voice = await message.voice.get_file()
         file = await message.bot.get_file(voice.file_id)
         file_path = file.file_path
         file_on_disk = f'media/{voice.file_unique_id}.ogg'
         await message.bot.download_file(file_path, destination=file_on_disk)
         text = await self.get_result_text(file_on_disk)
-        print(text)
-        if text == 'создать нового сотрудника':
-            voice_message = await generate_voice_message('Введите фамилию сотрудника')
-            await StaffForm.surname.set()
+        try:
+            comm, prep_text = self.parser.parse_command(text)
+        except ValueError:
+            voice_message = await generate_voice_message('Команда нераспознана')
             await message.answer_voice(voice_message)
+            return
+
+        if comm in self.create_commands:
+            try:
+                table_name = self.parser.parse_table_name(self.table_names, prep_text)
+            except ValueError:
+                voice_message = await generate_voice_message('Таблица не найдена')
+                await message.answer_voice(voice_message)
+                return
+            if table_name == 'Сотрудник':
+                voice_message = await generate_voice_message('Введите фамилию сотрудника')
+                await StaffForm.surname.set()
+                await message.answer_voice(voice_message)
         else:
             voice_message = await generate_voice_message(text)
             await message.answer_voice(voice_message)
 
     async def voice_message_with_state_handler(self, message: types.Message, state: FSMContext) -> None:
+        """ Обработка установки значения для поля формы """
         voice = await message.voice.get_file()
         file = await message.bot.get_file(voice.file_id)
         file_path = file.file_path
@@ -87,6 +101,7 @@ class VoicesHandler(BaseHandler):
         await message.answer(f'Вы ввели: {text}', reply_markup=reply_markup())
 
     async def check_callback(self, callback: types.CallbackQuery, state: FSMContext):
+        """ Подтверждение заполнения поля """
         await callback.answer()
         await callback.bot.edit_message_reply_markup(
             chat_id=callback.from_user.id,
