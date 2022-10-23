@@ -6,6 +6,7 @@ from aiogram.utils.exceptions import ValidationError
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from handlers.commands import CommandsHandler
+from handlers.staff import VoicesHandler
 from db.database import SessionLocal, engine
 from db import models
 
@@ -45,6 +46,8 @@ if __name__ == "__main__":
         # Регистрания handlers
         command_handler = CommandsHandler(db)
         command_handler(dp)
+        voices_handler = VoicesHandler(db)
+        voices_handler(dp)
 
         # Запуск поллинга
         executor.start_polling(dp, on_startup=on_startup)
