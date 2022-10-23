@@ -91,7 +91,7 @@ class VoicesHandler(BaseHandler):
                 voice_message = await generate_voice_message('Введите фамилию сотрудника')
                 await StaffForm.surname.set()
                 await message.answer_voice(voice_message)
-        if comm in self.get_commands:
+        elif comm in self.get_commands:
             try:
                 table_name = self.parser.parse_table_name(self.table_names, prep_text)
             except ValueError:
@@ -133,7 +133,7 @@ class VoicesHandler(BaseHandler):
         }
         state_name = (await state.get_state()).split(':')[-1]
         if callback.data == 'no':
-            await callback.message.answer(f'Повторите ввод')
+            await callback.message.answer('Повторите ввод')
         else:
             field_value = callback.data
             if state_name == 'age':
@@ -144,7 +144,12 @@ class VoicesHandler(BaseHandler):
                     await callback.message.answer_voice(voice_message)
                     return
             if state_name == 'birth_date':
-                field_value = datetime.date(day=1, month=1, year=2020)
+                try:
+                    field_value = self.parser.parse_date(callback.data)
+                except ValueError:
+                    voice_message = await generate_voice_message('Некорректная дата')
+                    await callback.message.answer_voice(voice_message)
+                    return
 
             async with state.proxy() as data:
                 data[state_name] = field_value
