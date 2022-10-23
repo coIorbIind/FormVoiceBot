@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from . import models, schemas
 
@@ -14,3 +15,7 @@ def create_staff_user(db: Session, staff: dict) -> models.Staff:
     db.add(db_user)
     db.commit()
     return db_user
+
+
+def get_staff_user_by_id(db: Session, staff_id: int) -> Optional[models.Staff]:
+    return db.query(models.Staff).get(staff_id)

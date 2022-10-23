@@ -2,6 +2,8 @@ import soundfile as sf
 import speech_recognition as speech_recog
 from nltk.stem import SnowballStemmer
 
+import os
+
 
 class Recognizer:
     @staticmethod
@@ -24,6 +26,13 @@ class Recognizer:
             raise ConnectionError('Can\'t connect to the server')
         except speech_recog.UnknownValueError:
             raise ValueError()
+        finally:
+            file_path = f'media/{name}.'
+            files = [file_path + 'wav', file_path + 'ogg']
+            for file in files:
+                if os.path.isfile(file):
+                    os.remove(file)
+
         return recognized_data
 
 
