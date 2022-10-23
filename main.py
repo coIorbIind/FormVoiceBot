@@ -52,7 +52,7 @@ if __name__ == "__main__":
         voices_handler(dp)
         with open('config.json', encoding='utf8') as file:
             data = json.load(file)
-        html_handler = HtmlHandler(data)
+        html_handler = HtmlHandler(data['форма'])
         html_handler(dp)
 
         # Запуск поллинга
