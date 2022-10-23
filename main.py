@@ -1,4 +1,5 @@
 import configparser
+import json
 
 from aiogram import Bot, Dispatcher
 from aiogram.utils import executor
@@ -6,6 +7,7 @@ from aiogram.utils.exceptions import ValidationError
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from handlers.commands import CommandsHandler
+from handlers.html_handlers import HtmlHandler
 from handlers.staff import VoicesHandler
 from db.database import SessionLocal, engine
 from db import models
@@ -48,6 +50,10 @@ if __name__ == "__main__":
         command_handler(dp)
         voices_handler = VoicesHandler(db)
         voices_handler(dp)
+        with open('config.json', encoding='utf8') as file:
+            data = json.load(file)
+        html_handler = HtmlHandler(data)
+        html_handler(dp)
 
         # Запуск поллинга
         executor.start_polling(dp, on_startup=on_startup)
