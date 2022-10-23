@@ -21,8 +21,8 @@ class StaffForm(StatesGroup):
 class CheckKeyboard:
     def __init__(self, text, message):
         self.keyboard = types.InlineKeyboardMarkup(row_width=2)
-        yes = types.InlineKeyboardButton(text='Подтвердить', callback_data=text, message=message)
-        no = types.InlineKeyboardButton(text='Отменить', callback_data='no')
+        yes = types.InlineKeyboardButton(text='Подтвердить ✅', callback_data=text, message=message)
+        no = types.InlineKeyboardButton(text='Отменить ❌', callback_data='no')
         self.keyboard.add(yes)
         self.keyboard.add(no)
 
@@ -74,6 +74,12 @@ class VoicesHandler(BaseHandler):
         await message.answer(f'Вы ввели: {text}', reply_markup=reply_markup())
 
     async def check_callback(self, callback: types.CallbackQuery, state: FSMContext):
+        await callback.answer()
+        await callback.bot.edit_message_reply_markup(
+            chat_id=callback.from_user.id,
+            message_id=callback.message.message_id,
+            reply_markup=None
+        )
         next_texts = {
             'surname': 'Введите имя сотрудника',
             'name': 'Введите отчество сотрудника',
