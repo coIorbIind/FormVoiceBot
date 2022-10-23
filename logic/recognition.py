@@ -20,7 +20,7 @@ class Recognizer:
         try:
             recognized_data = recog.recognize_google(audio_content, language='ru-RU')
         except speech_recog.RequestError:
-            return 'текст нераспознан'
+            raise ConnectionError('Can\'t connect to the server')
         except speech_recog.UnknownValueError:
-            return 'текст нераспознан'
+            raise ValueError()
         return recognized_data

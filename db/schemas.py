@@ -7,7 +7,7 @@ class StaffCreate(BaseModel):
     surname: str
     name: str
     patronymic: str
-    birth_date: datetime.datetime
+    birth_date: datetime.date
     age: int
 
 
