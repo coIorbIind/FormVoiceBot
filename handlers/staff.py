@@ -10,7 +10,8 @@ from sqlalchemy.exc import InvalidRequestError
 from .base import BaseHandler
 from logic.recognition import Recognizer
 from logic.generation import generate_voice_message
-from db.crud import create_staff_user
+from db.crud import create_staff_user, get_staff_user_by_id
+from db.models import Staff
 
 
 class StaffForm(StatesGroup):
@@ -20,6 +21,11 @@ class StaffForm(StatesGroup):
     patronymic = State()
     birth_date = State()
     age = State()
+
+
+class IdForm(StatesGroup):
+    """ Форма создания нового объекта сотрудника """
+    id = State()
 
 
 class CheckKeyboard:
@@ -85,6 +91,17 @@ class VoicesHandler(BaseHandler):
                 voice_message = await generate_voice_message('Введите фамилию сотрудника')
                 await StaffForm.surname.set()
                 await message.answer_voice(voice_message)
+        elif comm in self.get_commands:
+            try:
+                table_name = self.parser.parse_table_name(self.table_names, prep_text)
+            except ValueError:
+                voice_message = await generate_voice_message('Таблица не найдена')
+                await message.answer_voice(voice_message)
+                return
+            if table_name == 'Сотрудник':
+                voice_message = await generate_voice_message('Введите id сотрудника')
+                await IdForm.id.set()
+                await message.answer_voice(voice_message)
         else:
             voice_message = await generate_voice_message(text)
             await message.answer_voice(voice_message)
@@ -116,7 +133,7 @@ class VoicesHandler(BaseHandler):
         }
         state_name = (await state.get_state()).split(':')[-1]
         if callback.data == 'no':
-            await callback.message.answer(f'Повторите ввод')
+            await callback.message.answer('Повторите ввод')
         else:
             field_value = callback.data
             if state_name == 'age':
@@ -127,7 +144,12 @@ class VoicesHandler(BaseHandler):
                     await callback.message.answer_voice(voice_message)
                     return
             if state_name == 'birth_date':
-                field_value = datetime.date(day=1, month=1, year=2020)
+                try:
+                    field_value = self.parser.parse_date(callback.data)
+                except ValueError:
+                    voice_message = await generate_voice_message('Некорректная дата')
+                    await callback.message.answer_voice(voice_message)
+                    return
 
             async with state.proxy() as data:
                 data[state_name] = field_value
@@ -139,20 +161,53 @@ class VoicesHandler(BaseHandler):
                                                                  'Не удалось создать такого сотрудника}')
                     await callback.message.answer_voice(voice_message)
                     return
-                dct = new_staff_user.__class__.__dict__
-                result = ''
-                for key in dct.keys():
-                    if not key.startswith('_') and key in data:
-                        result += f'{dct[key].name}: {data[key]}\n'
-                await callback.message.answer(f'<b>Cоздан новый сотрудник</b>\n'
-                                              f'{result}', parse_mode=ParseMode.HTML)
+                title = '<b>Cоздан новый сотрудник</b>\n'
+                result = await self.reply_staff_data(obj=new_staff_user, title=title)
+                await callback.message.answer(result, parse_mode=ParseMode.HTML)
+                await state.finish()
             else:
                 voice_message = await generate_voice_message(next_texts[state_name])
                 await StaffForm.next()
                 await callback.message.answer_voice(voice_message)
+
+    async def id_handler(self, message: types.Message, state: FSMContext) -> None:
+        """ Обработка установки значения для поля формы """
+        voice = await message.voice.get_file()
+        file = await message.bot.get_file(voice.file_id)
+        file_path = file.file_path
+        file_on_disk = f'media/{voice.file_unique_id}.ogg'
+        await message.bot.download_file(file_path, destination=file_on_disk)
+        text = await self.get_result_text(file_on_disk)
+        await state.finish()
+        try:
+            id_ = int(text)
+        except ValueError:
+            voice_message = await generate_voice_message('Id сотрудника должен быть числом')
+            await message.answer_voice(voice_message)
+            return
+
+        user = get_staff_user_by_id(self.session, id_)
+        if user is None:
+            voice_message = await generate_voice_message(f'Сотрудник с id {id_} не найден')
+            await message.answer_voice(voice_message)
+            return
+
+        title = f'<b>Сотрудник с id {id_}</b>\n'
+        result = await self.reply_staff_data(obj=user, title=title)
+        await message.answer(result, parse_mode=ParseMode.HTML)
+
+    async def reply_staff_data(self, title: str, obj: Staff) -> str:
+        dct = obj.__class__.__dict__
+        result = title
+        for key in dct.keys():
+            if not key.startswith('_'):
+                result += f'{dct[key].name}: {getattr(obj, key)}\n'
+        return result
 
     def __call__(self, dp: Dispatcher):
         dp.register_message_handler(self.voice_message_handler, content_types=types.ContentType.VOICE)
         dp.register_message_handler(self.voice_message_with_state_handler, content_types=types.ContentType.VOICE,
                                     state=StaffForm.states)
         dp.register_callback_query_handler(self.check_callback, state=StaffForm.states)
+        dp.register_message_handler(self.id_handler, content_types=types.ContentType.VOICE,
+                                    state=IdForm.id)

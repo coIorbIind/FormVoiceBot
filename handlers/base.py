@@ -12,11 +12,13 @@ class BaseHandler:
         self.session = db
         self.create_commands = ('добавить', 'заполнить', 'создать')
         self.update_commands = ('изменить', )
+        self.get_commands = ('получить', 'извлечь', 'найти')
         self.table_names = [table.__tablename__ for table in Base.__subclasses__()]
 
         com_stop_word_dict = {
             self.create_commands: ['нового'],
             self.update_commands: [],
+            self.get_commands: []
         }
         self.parser = TextParser(com_stop_word_dict)
 

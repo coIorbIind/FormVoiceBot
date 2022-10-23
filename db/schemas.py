@@ -10,6 +10,12 @@ class StaffCreate(BaseModel):
     birth_date: datetime.date
     age: int
 
+    class Config:
+        orm_mode = True
+
 
 class StaffGet(StaffCreate):
     id: int
+
+    class Config:
+        orm_mode = True
