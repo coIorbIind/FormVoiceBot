@@ -1,6 +1,8 @@
 import soundfile as sf
 import speech_recognition as speech_recog
 from nltk.stem import SnowballStemmer
+import re
+from datetime import date
 
 import os
 
@@ -104,3 +106,47 @@ class TextParser:
                 found_fields.append(field_token[0])
 
         return found_fields
+
+    @staticmethod
+    def parse_date(prep_text):
+
+        month_word_dict = {
+            'январь': 1,
+            'февраль': 2,
+            'март': 3,
+            'апрель': 4,
+            'май': 5,
+            'июнь': 6,
+            'июль': 7,
+            'август': 8,
+            'сентябрь': 9,
+            'октябрь': 10,
+            'ноябрь': 11,
+            'декабрь': 12
+        }
+
+        day_match = re.search(r'\d\d?', prep_text)
+        year_match = re.search(r'\d{4}', prep_text)
+        month = None
+
+        stemmer = SnowballStemmer(language='russian')
+
+        for month_name, num_value in month_word_dict.items():
+            stemmed_month = stemmer.stem(month_name)
+
+            month_match = re.search(stemmed_month, prep_text, re.IGNORECASE)
+            if month_match:
+                month = num_value
+
+        try:
+            if not day_match or not year_match or not month:
+                raise ValueError
+
+            year = int(prep_text[year_match.start(): year_match.end()])
+            day = int(prep_text[day_match.start(): day_match.end()])
+
+            result = date(year, month, day)
+        except ValueError:
+            raise ValueError('Wrong date message!')
+
+        return result
